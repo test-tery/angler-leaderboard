@@ -4,65 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Raubfisch-Cup Leaderboard</title>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh;
-            padding: 20px;
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
+            min-height: 100vh; 
+            padding: 20px; 
             color: #fff;
+            overflow-x: hidden;
         }
         .container { max-width: 900px; margin: 0 auto; }
         h1 { text-align: center; margin-bottom: 30px; font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        .card { 
+            background: rgba(255,255,255,0.95); 
+            border-radius: 12px; 
+            padding: 25px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); 
             color: #333;
         }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
-        input, select, button {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+        input, select, button { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
             font-size: 16px;
         }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #2a5298;
-        }
-        button {
-            background: #2a5298;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            margin-top: 10px;
+        input:focus, select:focus { outline: none; border-color: #2a5298; }
+        button { 
+            background: #2a5298; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: 600; 
+            margin-top: 10px; 
             transition: background 0.3s;
         }
         button:hover { background: #1e3c72; }
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .leaderboard-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 10px;
+        button.green { background: #28a745; }
+        button.green:hover { background: #218838; }
+        button.secondary { background: #6c757d; margin-top: 10px; }
+        button.secondary:hover { background: #5a6268; }
+
+        .leaderboard-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 15px; 
+            background: #f8f9fa; 
+            border-radius: 8px; 
+            margin-bottom: 10px; 
             border-left: 4px solid #2a5298;
         }
-        .rank {
-            font-size: 1.5rem;
-            font-weight: bold;
-            width: 50px;
+        .rank { 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            width: 50px; 
             color: #2a5298;
         }
         .rank.gold { color: #FFD700; }
@@ -70,308 +72,393 @@
         .rank.bronze { color: #CD7F32; }
         .angler-info { flex: 1; }
         .angler-name { font-weight: 600; font-size: 1.1rem; }
-        .points {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #2a5298;
-        }
-        .catches-list { margin-top: 15px; }
-        .catch-item {
-            background: #e9ecef;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .hidden { display: none; }
-        .tab-buttons {
-            display: flex;
-            gap: 10px;
+        .points { font-size: 1.3rem; font-weight: bold; color: #2a5298; }
+
+        .hidden { display: none !important; }
+
+        .tab-buttons { 
+            display: flex; 
+            gap: 10px; 
             margin-bottom: 20px;
         }
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.3);
-            color: white;
-            cursor: pointer;
-            border-radius: 8px;
-            font-weight: 600;
+        .tab-btn { 
+            flex: 1; 
+            padding: 12px; 
+            background: rgba(255,255,255,0.2); 
+            border: 2px solid rgba(255,255,255,0.3); 
+            color: white; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            font-weight: 600; 
             transition: all 0.3s;
         }
-        .tab-btn.active {
-            background: rgba(255,255,255,0.95);
+        .tab-btn.active { 
+            background: rgba(255,255,255,0.95); 
             color: #2a5298;
+        }
+
+        .status { 
+            padding: 10px; 
+            border-radius: 6px; 
+            margin-bottom: 15px; 
+            font-weight: bold; 
+            text-align: center;
+        }
+        .status.online { background: #d4edda; color: #155724; }
+        .status.offline { background: #f8d7da; color: #721c24; }
+
+        .info-box { 
+            background: #fff3cd; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            color: #856404;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎣 Raubfisch-Cup Leaderboard 2026</h1>
-        
-        <div class="card" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); margin-bottom: 25px;">
-            <h3 style="color: #fff; margin-bottom: 10px;">📋 GitHub Pages Deploy</h3>
-            <ol style="color: #fff; line-height: 1.8; padding-left: 20px;">
-                <li><strong>Repository erstellen:</strong> <a href="https://github.com/new" target="_blank" style="color: #90cdf4;">github.com/new</a> → Name: <code>angler-leaderboard</code> → Public → Create</li>
-                <li><strong>Datei hochladen:</strong> "uploading an existing file" → Diese HTML-Datei als <code>index.html</code> hochladen → Commit</li>
-                <li><strong>Pages aktivieren:</strong> Settings → Pages → Source: <code>main</code> → Save</li>
-                <li><strong>URL teilen:</strong> <code>https://username.github.io/angler-leaderboard</code></li>
-            </ol>
-            <p style="color: #90cdf4; margin-top: 15px; font-weight: 600;">🎣 Alle Angler nutzen dann dieselbe URL und sehen die gleiche Rangliste!</p>
+        <h1>🎣 Raubfisch-Cup</h1>
+
+        <div id="statusBar" class="status offline">🔴 Verbinde...</div>
+
+        <div class="info-box">
+            <h3>✅ Firebase Multiuser Live!</h3>
+            <p>Alle Angler können gleichzeitig Fänge melden.</p>
         </div>
-        
+
         <div class="tab-buttons">
-            <button class="tab-btn active" onclick="showTab('login')">Anmelden</button>
-            <button class="tab-btn" onclick="showTab('register')">Registrieren</button>
-            <button class="tab-btn" onclick="showTab('leaderboard')">Rangliste</button>
+            <button class="tab-btn active" id="btnTabLogin">Anmelden</button>
+            <button class="tab-btn" id="btnTabLeaderboard">Rangliste</button>
         </div>
 
+        <!-- LOGIN TAB -->
         <div id="loginTab" class="card">
-            <h2>Anmelden</h2>
-            <form onsubmit="login(event)">
+            <h2>👋 Angemeldet als: <span id="currentUserDisplay">Gast</span></h2>
+            <form id="loginForm">
                 <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" id="loginName" required>
+                    <label>Angler Name</label>
+                    <input type="text" id="loginName" placeholder="max" required>
                 </div>
                 <div class="form-group">
                     <label>Passwort</label>
-                    <input type="password" id="loginPassword" required>
+                    <input type="password" id="loginPassword" placeholder="1234" required>
                 </div>
-                <button type="submit">Anmelden</button>
+                <button type="submit">🚀 Anmelden</button>
             </form>
+            <button class="green" id="btnShowRegister">➕ Neuer Angler</button>
         </div>
 
+        <!-- REGISTER TAB -->
         <div id="registerTab" class="card hidden">
-            <h2>Neuer Angler registrieren</h2>
-            <form onsubmit="register(event)">
+            <h2>➕ Neuer Angler</h2>
+            <form id="registerForm">
                 <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" id="regName" required>
+                    <label>Angler Name</label>
+                    <input type="text" id="regName" placeholder="max" required>
                 </div>
                 <div class="form-group">
-                    <label>Passwort</label>
-                    <input type="password" id="regPassword" required minlength="4">
-                </div>
-                <div class="form-group">
-                    <label>Passwort wiederholen</label>
-                    <input type="password" id="regPasswordConfirm" required minlength="4">
+                    <label>Passwort (min. 4 Zeichen)</label>
+                    <input type="password" id="regPassword" minlength="4" placeholder="1234" required>
                 </div>
                 <button type="submit">Registrieren</button>
             </form>
+            <button class="secondary" id="btnBackToLogin">← Zurück</button>
         </div>
 
-        <div id="leaderboardTab" class="card hidden">
-            <h2>Rangliste</h2>
-            <div id="leaderboardList"></div>
-        </div>
-
+        <!-- CATCH TAB -->
         <div id="catchTab" class="card hidden">
-            <h2>Fang melden - <span id="currentUser"></span></h2>
-            <form onsubmit="addCatch(event)">
+            <h2>📏 Fänge melden</h2>
+            <p><strong>Angler:</strong> <span id="catchUserName"></span></p>
+            <form id="catchForm">
                 <div class="form-group">
                     <label>Fischart</label>
                     <select id="species" required>
                         <option value="">Wählen...</option>
-                        <option value="hecht">Hecht</option>
-                        <option value="barsch">Barsch</option>
-                        <option value="zander">Zander</option>
-                        <option value="rapfen">Rapfen</option>
-                        <option value="wels">Wels</option>
-                        <option value="aal">Aal</option>
+                        <option value="hecht">Hecht 🐟</option>
+                        <option value="barsch">Barsch 🐟</option>
+                        <option value="zander">Zander 🐟</option>
+                        <option value="rapfen">Rapfen 🐟</option>
+                        <option value="wels">Wels 🐟</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Länge (cm)</label>
-                    <input type="number" id="length" min="0" required>
+                    <input type="number" id="length" min="1" step="0.1" placeholder="85" required>
                 </div>
-                <button type="submit">Fang melden</button>
-                <button type="button" onclick="showMyCatches()">Meine Fänge</button>
-                <button type="button" onclick="logout()">Abmelden</button>
+                <button type="submit">🎣 Fang melden</button>
             </form>
+            <button class="green" id="btnToLeaderboard">🏆 Rangliste</button>
+            <button class="secondary" id="btnLogout">🚪 Logout</button>
         </div>
 
-        <div id="myCatchesTab" class="card hidden">
-            <h2>Meine Fänge - <span id="myCatchesUser"></span></h2>
-            <div id="myCatchesList"></div>
-            <button onclick="backToCatch()">Zurück</button>
+        <!-- LEADERBOARD TAB -->
+        <div id="leaderboardTab" class="card hidden">
+            <h2>🏆 Live Rangliste</h2>
+            <div id="leaderboardList">Lade...</div>
+            <button class="secondary" id="btnBackToAccount">👤 Mein Account</button>
         </div>
     </div>
 
     <script>
-        const RULES = {
-            hecht: [[110,6],[100,5],[90,4],[75,3],[50,2],[0,1]],
-            barsch: [[45,6],[40,5],[35,4],[30,3],[25,2]],
-            zander: [[100,7],[90,6],[80,4],[65,3],[50,2],[0,1]],
-            rapfen: [[95,5],[75,4],[55,3],[35,2],[0,1]],
-            wels: [[150,6],[125,5],[100,4],[85,3],[60,2],[35,1]],
-            aal: [[90,4],[80,3],[70,2],[60,1]]
+        // FIREBASE CONFIG - DEINE ECHTE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyDd-lmTGLwFc25DfPZ5ITBYnHEao-qKECw",
+            authDomain: "raubfisch-cup.firebaseapp.com",
+            projectId: "raubfisch-cup",
+            storageBucket: "raubfisch-cup.firebasestorage.app",
+            messagingSenderId: "989598813742",
+            appId: "1:989598813742:web:7c154e9e6ec42600ef59bf"
         };
 
-        let anglers = JSON.parse(localStorage.getItem('anglers')) || [];
-        let catches = JSON.parse(localStorage.getItem('catches')) || [];
-        let currentAngler = localStorage.getItem('currentAngler');
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
 
-        function showTab(tab) {
-            document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            
-            if (tab === 'login') {
-                document.getElementById('loginTab').classList.remove('hidden');
-                event.target.classList.add('active');
-            } else if (tab === 'register') {
-                document.getElementById('registerTab').classList.remove('hidden');
-                event.target.classList.add('active');
-            } else if (tab === 'leaderboard') {
-                showLeaderboard();
-                document.getElementById('leaderboardTab').classList.remove('hidden');
-                event.target.classList.add('active');
+        let currentUser = null;
+
+        // Punkteregeln
+        const RULES = {
+            hecht: [[110,10],[100,8],[90,6],[75,4],[60,3],[40,2],[0,1]],
+            barsch: [[50,8],[45,6],[40,5],[35,4],[30,3],[25,2]],
+            zander: [[100,10],[90,8],[80,6],[70,5],[60,4],[50,2]],
+            rapfen: [[95,8],[80,6],[65,5],[50,4],[35,2]],
+            wels: [[150,12],[130,10],[110,8],[90,6],[70,4],[50,2]]
+        };
+
+        // Auth State Listener
+        auth.onAuthStateChanged(user => {
+            currentUser = user;
+            const statusBar = document.getElementById('statusBar');
+
+            if (user) {
+                const username = user.email.split('@')[0];
+                statusBar.innerHTML = '🟢 Online: <strong>' + username + '</strong>';
+                statusBar.className = 'status online';
+                document.getElementById('currentUserDisplay').textContent = username;
+                document.getElementById('catchUserName').textContent = username;
+                showCatchTab();
+            } else {
+                statusBar.innerHTML = '🔴 Offline - Bitte anmelden';
+                statusBar.className = 'status offline';
+                document.getElementById('currentUserDisplay').textContent = 'Gast';
+                showLoginTab();
             }
+        });
+
+        // Tab Navigation mit Button Clicks
+        document.getElementById('btnTabLogin').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            if (currentUser) {
+                showCatchTab();
+            } else {
+                showLoginTab();
+            }
+        });
+
+        document.getElementById('btnTabLeaderboard').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            showLeaderboardTab();
+        });
+
+        // Weitere Button Listeners
+        document.getElementById('btnShowRegister').addEventListener('click', function(e) {
+            e.preventDefault();
+            showRegisterTab();
+        });
+
+        document.getElementById('btnBackToLogin').addEventListener('click', function(e) {
+            e.preventDefault();
+            showLoginTab();
+        });
+
+        document.getElementById('btnToLeaderboard').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btnTabLeaderboard').classList.add('active');
+            showLeaderboardTab();
+        });
+
+        document.getElementById('btnLogout').addEventListener('click', function(e) {
+            e.preventDefault();
+            auth.signOut().then(() => alert('✅ Logout erfolgreich!'));
+        });
+
+        document.getElementById('btnBackToAccount').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btnTabLogin').classList.add('active');
+            if (currentUser) {
+                showCatchTab();
+            } else {
+                showLoginTab();
+            }
+        });
+
+        // Tab Display Functions
+        function showLoginTab() {
+            document.getElementById('loginTab').classList.remove('hidden');
+            document.getElementById('registerTab').classList.add('hidden');
+            document.getElementById('catchTab').classList.add('hidden');
+            document.getElementById('leaderboardTab').classList.add('hidden');
         }
 
-        function login(e) {
+        function showRegisterTab() {
+            document.getElementById('loginTab').classList.add('hidden');
+            document.getElementById('registerTab').classList.remove('hidden');
+            document.getElementById('catchTab').classList.add('hidden');
+            document.getElementById('leaderboardTab').classList.add('hidden');
+        }
+
+        function showCatchTab() {
+            document.getElementById('loginTab').classList.add('hidden');
+            document.getElementById('registerTab').classList.add('hidden');
+            document.getElementById('catchTab').classList.remove('hidden');
+            document.getElementById('leaderboardTab').classList.add('hidden');
+        }
+
+        function showLeaderboardTab() {
+            document.getElementById('loginTab').classList.add('hidden');
+            document.getElementById('registerTab').classList.add('hidden');
+            document.getElementById('catchTab').classList.add('hidden');
+            document.getElementById('leaderboardTab').classList.remove('hidden');
+        }
+
+        // Login Form
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const name = document.getElementById('loginName').value.trim();
             const password = document.getElementById('loginPassword').value;
-            const angler = anglers.find(a => a.name === name);
-            
-            if (!angler) {
-                alert('Angler nicht gefunden. Bitte zuerst registrieren.');
-                return;
-            }
-            
-            if (angler.password !== password) {
-                alert('Falsches Passwort!');
-                return;
-            }
-            
-            currentAngler = name;
-            localStorage.setItem('currentAngler', name);
-            document.getElementById('loginName').value = '';
-            document.getElementById('loginPassword').value = '';
-            showCatchForm();
-        }
+            const email = name.toLowerCase().replace(/[^a-z0-9]/g, '') + '@raubfisch-cup.com';
 
-        function register(e) {
+            auth.signInWithEmailAndPassword(email, password)
+                .catch(err => alert('❌ Login Fehler: ' + err.message));
+        });
+
+        // Register Form
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const name = document.getElementById('regName').value.trim();
             const password = document.getElementById('regPassword').value;
-            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
-            
-            if (anglers.find(a => a.name === name)) {
-                alert('Name bereits vergeben!');
-                return;
-            }
-            
-            if (password !== passwordConfirm) {
-                alert('Passwörter stimmen nicht überein!');
-                return;
-            }
-            
+
             if (password.length < 4) {
-                alert('Passwort muss mindestens 4 Zeichen lang sein!');
+                alert('❌ Passwort min. 4 Zeichen!');
                 return;
             }
-            
-            anglers.push({ name, password, totalPoints: 0 });
-            localStorage.setItem('anglers', JSON.stringify(anglers));
-            
-            currentAngler = name;
-            localStorage.setItem('currentAngler', name);
-            document.getElementById('regName').value = '';
-            document.getElementById('regPassword').value = '';
-            document.getElementById('regPasswordConfirm').value = '';
-            showCatchForm();
-        }
 
-        function showCatchForm() {
-            document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
-            document.getElementById('catchTab').classList.remove('hidden');
-            document.getElementById('currentUser').textContent = currentAngler;
-        }
+            const email = name.toLowerCase().replace(/[^a-z0-9]/g, '') + '@raubfisch-cup.com';
 
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(() => {
+                    alert('✅ Angler "' + name + '" registriert! Jetzt anmelden.');
+                    showLoginTab();
+                })
+                .catch(err => alert('❌ Registrierung Fehler: ' + err.message));
+        });
+
+        // Catch Form
+        document.getElementById('catchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!currentUser) {
+                alert('❌ Bitte anmelden!');
+                return;
+            }
+
+            const species = document.getElementById('species').value;
+            const length = parseFloat(document.getElementById('length').value);
+            const points = calcPoints(species, length);
+
+            const catchData = {
+                angler: currentUser.email.split('@')[0],
+                species: species,
+                length: length,
+                points: points,
+                uid: currentUser.uid,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            db.ref('catches').push(catchData)
+                .then(() => {
+                    alert('🎣 ' + species.toUpperCase() + ' ' + length.toFixed(1) + 'cm = ' + points + ' Punkte!');
+                    document.getElementById('catchForm').reset();
+                })
+                .catch(err => alert('❌ Fehler: ' + err.message));
+        });
+
+        // Punkte berechnen
         function calcPoints(species, length) {
             const rules = RULES[species];
             if (!rules) return 0;
-            const rule = rules.find(([min]) => length >= min);
-            return rule ? rule[1] : 0;
+
+            for (let i = 0; i < rules.length; i++) {
+                if (length >= rules[i][0]) {
+                    return rules[i][1];
+                }
+            }
+            return 1;
         }
 
-        function addCatch(e) {
-            e.preventDefault();
-            const species = document.getElementById('species').value;
-            const length = parseInt(document.getElementById('length').value);
-            const points = calcPoints(species, length);
-            
-            catches.push({
-                angler: currentAngler,
-                species,
-                length,
-                points,
-                date: new Date().toLocaleString('de-DE')
+        // LIVE LEADERBOARD
+        db.ref('catches').on('value', snapshot => {
+            const catches = snapshot.val() || {};
+            const anglerPoints = {};
+
+            // Punkte sammeln
+            Object.values(catches).forEach(c => {
+                if (!anglerPoints[c.angler]) {
+                    anglerPoints[c.angler] = 0;
+                }
+                anglerPoints[c.angler] += c.points;
             });
-            
-            const angler = anglers.find(a => a.name === currentAngler);
-            angler.totalPoints += points;
-            
-            localStorage.setItem('catches', JSON.stringify(catches));
-            localStorage.setItem('anglers', JSON.stringify(anglers));
-            
-            alert(`Fang gemeldet! ${species.toUpperCase()} ${length}cm → ${points} Punkte`);
-            document.getElementById('species').value = '';
-            document.getElementById('length').value = '';
-        }
 
-        function showLeaderboard() {
-            const sorted = [...anglers].sort((a, b) => b.totalPoints - a.totalPoints);
-            const html = sorted.map((a, i) => {
-                const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-                return `
-                    <div class="leaderboard-item">
-                        <div class="rank ${rankClass}">#${i+1}</div>
-                        <div class="angler-info">
-                            <div class="angler-name">${a.name}</div>
-                            <div>Fänge: ${catches.filter(c => c.angler === a.name).length}</div>
-                        </div>
-                        <div class="points">${a.totalPoints} Punkte</div>
-                    </div>
-                `;
-            }).join('');
-            document.getElementById('leaderboardList').innerHTML = html || '<p>Noch keine Angler registriert.</p>';
-        }
+            // Sortieren
+            const sorted = Object.entries(anglerPoints)
+                .sort((a, b) => b[1] - a[1])
+                .map((entry, index) => {
+                    const name = entry[0];
+                    const totalPoints = entry[1];
+                    const catches_count = Object.values(catches).filter(c => c.angler === name).length;
 
-        function showMyCatches() {
-            const myCatches = catches.filter(c => c.angler === currentAngler);
-            const html = myCatches.map(c => `
-                <div class="catch-item">
-                    <div>
-                        <strong>${c.species.toUpperCase()}</strong> - ${c.length}cm<br>
-                        <small>${c.date}</small>
-                    </div>
-                    <div><strong>${c.points} Punkte</strong></div>
-                </div>
-            `).join('');
-            
-            document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
-            document.getElementById('myCatchesTab').classList.remove('hidden');
-            document.getElementById('myCatchesUser').textContent = currentAngler;
-            document.getElementById('myCatchesList').innerHTML = html || '<p>Noch keine Fänge gemeldet.</p>';
-        }
+                    return {
+                        rank: index + 1,
+                        name: name,
+                        points: totalPoints,
+                        catches: catches_count
+                    };
+                });
 
-        function backToCatch() {
-            showCatchForm();
-        }
+            // HTML generieren
+            let html = '';
+            if (sorted.length === 0) {
+                html = '<div class="leaderboard-item"><p>🕒 Noch keine Fänge...</p></div>';
+            } else {
+                sorted.forEach(a => {
+                    let rankClass = '';
+                    if (a.rank === 1) rankClass = 'gold';
+                    else if (a.rank === 2) rankClass = 'silver';
+                    else if (a.rank === 3) rankClass = 'bronze';
 
-        function logout() {
-            localStorage.removeItem('currentAngler');
-            currentAngler = null;
-            showTab('login');
-        }
+                    html += '<div class="leaderboard-item">' +
+                        '<div class="rank ' + rankClass + '">#' + a.rank + '</div>' +
+                        '<div class="angler-info">' +
+                        '<div class="angler-name">' + a.name + '</div>' +
+                        '<small>' + a.catches + ' Fänge</small>' +
+                        '</div>' +
+                        '<div class="points">' + a.points + ' Pkt</div>' +
+                        '</div>';
+                });
+            }
 
-        if (currentAngler) {
-            showCatchForm();
-        }
+            document.getElementById('leaderboardList').innerHTML = html;
+        });
+
+        console.log('🚀 Raubfisch-Cup Multiuser Ready!');
     </script>
 </body>
 </html>
